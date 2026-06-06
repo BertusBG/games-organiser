@@ -12,25 +12,63 @@
       tr:nth-child(even) { background: #fafafa; }
       tr:hover { background: #f1f1f1; }
       .empty { color: #888; }
+      button { cursor: pointer; padding: 10px 16px; font-size: 1rem; }
+      #regenerate-btn { margin-bottom: 16px; }
+      th.sortable { cursor: pointer; user-select: none; }
+      .sort-indicator { margin-left: 6px; font-size: 0.9em; opacity: 0.7; }
+      #progress-wrapper { margin: 20px 0; }
+      #progress-wrapper.hidden { display: none; }
+      #progress-output { background: #fff; border: 1px solid #ddd; padding: 12px; min-height: 120px; white-space: pre-wrap; overflow-x: auto; }
     </style>
   </head>
   <body>
     <h1>Games Organiser</h1>
-    <p>Displaying data from <strong>names_and_prices.csv</strong>.</p>
+    <button id="regenerate-btn" type="button">Refresh prices from gg.deals</button>
+    <div id="progress-wrapper" class="hidden">
+      <h2>Regeneration progress</h2>
+      <div id="progress-ui">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="flex:1">
+            <div class="progress" style="background:#eee;border:1px solid #ddd;height:18px;border-radius:4px;overflow:hidden;">
+              <div id="progress-bar" style="height:100%;width:0%;background:#4caf50;"></div>
+            </div>
+          </div>
+          <div id="progress-percent">0%</div>
+        </div>
+        <div id="progress-status" class="empty" style="margin-top:8px;">Press the button to start regeneration.</div>
+      </div>
+      <pre id="progress-output" class="empty" style="display:none;">Press the button to start regeneration.</pre>
+    </div>
     <table>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>SteamID</th>
-          <th>LowestPriceZAR</th>
+          <th data-type="string" class="sortable">Name <span class="sort-indicator"></span></th>
+          <th data-type="string" class="sortable">SteamID <span class="sort-indicator"></span></th>
+          <th data-type="number" class="sortable">LowestPriceZAR <span class="sort-indicator"></span></th>
         </tr>
       </thead>
       <tbody>
         {% for game in games %}
         <tr>
           <td>{{ game.Name }}</td>
-          <td>{{ game.SteamID }}</td>
-          <td>{{ game.LowestPriceZAR or "N/A" }}</td>
+          <td>
+            {% if game.SteamID %}
+            <a href="https://store.steampowered.com/app/{{ game.SteamID }}" target="_blank" rel="noopener">{{ game.SteamID }}</a>
+            {% else %}
+            N/A
+            {% endif %}
+          </td>
+          <td>
+            {% if game.LowestPriceZAR %}
+              {% if game.GGDealsURL %}
+              <a href="{{ game.GGDealsURL }}" target="_blank" rel="noopener">{{ game.LowestPriceZAR }}</a>
+              {% else %}
+              <a href="https://gg.deals/games/?search={{ game.Name | replace(' ', '+') }}" target="_blank" rel="noopener">{{ game.LowestPriceZAR }}</a>
+              {% endif %}
+            {% else %}
+            N/A
+            {% endif %}
+          </td>
         </tr>
         {% else %}
         <tr>
@@ -39,5 +77,129 @@
         {% endfor %}
       </tbody>
     </table>
+    <script>
+      const button = document.getElementById("regenerate-btn");
+      const output = document.getElementById("progress-output");
+      const progressWrapper = document.getElementById("progress-wrapper");
+      const progressBar = document.getElementById("progress-bar");
+      const progressPercent = document.getElementById("progress-percent");
+      const progressStatus = document.getElementById("progress-status");
+
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        button.textContent = "Regenerating…";
+        output.textContent = "";
+        progressStatus.textContent = "Connecting...";
+        progressBar.style.width = "0%";
+        progressPercent.textContent = "0%";
+        progressWrapper.classList.remove("hidden");
+        // bring the progress area into view at the top
+        progressWrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        try {
+          const response = await fetch("/regenerate", { method: "POST" });
+          if (!response.ok) throw new Error(`Server returned ${response.status}`);
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let done = false;
+          let buffer = "";
+          let total = 0;
+          let processed = 0;
+
+          while (!done) {
+            const { value, done: chunkDone } = await reader.read();
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              // process complete lines
+              const lines = buffer.split("\n");
+              buffer = lines.pop() || "";
+              for (const raw of lines) {
+                const line = raw.trim();
+                if (!line) continue;
+                // server sends TOTAL:<n> first
+                if (line.startsWith("TOTAL:")) {
+                  total = parseInt(line.split(":")[1], 10) || 0;
+                  progressStatus.textContent = `Starting regeneration: 0 of ${total}`;
+                } else if (line.startsWith("Processed ")) {
+                  processed += 1;
+                  const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
+                  progressBar.style.width = pct + "%";
+                  progressPercent.textContent = pct + "%";
+                  progressStatus.textContent = `${processed} of ${total} processed`;
+                } else if (line.toLowerCase().includes("regeneration complete") || line.toLowerCase().includes("finished regenerating")) {
+                  progressBar.style.width = "100%";
+                  progressPercent.textContent = "100%";
+                  progressStatus.textContent = "Complete.";
+                } else if (line.startsWith("Error:")) {
+                  progressStatus.textContent = line;
+                  // reveal debug output on error
+                  output.style.display = "block";
+                  output.textContent += line + "\n";
+                } else {
+                  // other informational lines: append to hidden log for debugging
+                  output.textContent += line + "\n";
+                }
+              }
+
+              // keep the progress area visible while streaming; keep it at the top of the viewport
+              progressWrapper.scrollIntoView({ behavior: "auto", block: "start" });
+            }
+            done = chunkDone;
+          }
+
+          progressStatus.textContent = "Finished regenerating. Reloading page...";
+          setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+          output.textContent += "\nError: " + err.message;
+          console.error(err);
+        } finally {
+          button.disabled = false;
+          button.textContent = "Regenerate CSV";
+          // hide the progress area after a short delay if not reloading
+          setTimeout(() => {
+            if (!document.hidden) progressWrapper.classList.add("hidden");
+          }, 3000);
+        }
+      });
+    </script>
+      <script>
+        // Client-side table sorting for the games table
+        (function(){
+          const table = document.querySelector('table');
+          if (!table) return;
+          const ths = table.querySelectorAll('th.sortable');
+          ths.forEach(th => {
+            th.addEventListener('click', () => {
+              const index = th.cellIndex;
+              const type = th.dataset.type || 'string';
+              const current = th.dataset.order === 'asc' ? 'asc' : (th.dataset.order === 'desc' ? 'desc' : null);
+              const asc = current === 'asc' ? false : true;
+              // clear other indicators
+              ths.forEach(x => { x.dataset.order = ''; const i = x.querySelector('.sort-indicator'); if (i) i.textContent = ''; });
+              th.dataset.order = asc ? 'asc' : 'desc';
+              const indicator = th.querySelector('.sort-indicator');
+              if (indicator) indicator.textContent = asc ? '▲' : '▼';
+
+              const tbody = table.tBodies[0];
+              const rows = Array.from(tbody.querySelectorAll('tr'));
+              rows.sort((a, b) => {
+                const aCell = a.children[index] ? a.children[index].textContent.trim() : '';
+                const bCell = b.children[index] ? b.children[index].textContent.trim() : '';
+                if (type === 'number') {
+                  const aNum = parseFloat(aCell.replace(/[^0-9.-]+/g, ''));
+                  const bNum = parseFloat(bCell.replace(/[^0-9.-]+/g, ''));
+                  const aVal = isNaN(aNum) ? Infinity : aNum;
+                  const bVal = isNaN(bNum) ? Infinity : bNum;
+                  return asc ? aVal - bVal : bVal - aVal;
+                }
+                return asc ? aCell.localeCompare(bCell, undefined, {numeric: true}) : bCell.localeCompare(aCell, undefined, {numeric: true});
+              });
+              // reattach rows in sorted order
+              rows.forEach(r => tbody.appendChild(r));
+            });
+          });
+        })();
+      </script>
   </body>
 </html>

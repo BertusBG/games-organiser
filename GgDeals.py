@@ -58,3 +58,35 @@ def get_lowest_price_zar(gameName, region='us', usd_zar_rate=None):
 
     rate = usd_zar_rate if usd_zar_rate is not None else Utils.get_usd_zar_exchange_rate()
     return min(candidates) * rate
+
+
+def get_game_page_url(steamID, gameName=None, region='us'):
+    """Best-effort: return a direct gg.deals game page URL for the given Steam ID or None."""
+    info = get_price_info(steamID, region=region)
+    if not info:
+        return None
+
+    # Try common fields that may contain slug or url
+    # API structures can vary; check multiple possibilities
+    # 1) direct url
+    for key in ('url', 'game_url', 'link'):
+        val = info.get(key)
+        if isinstance(val, str) and val:
+            return val
+
+    # 2) slug under top-level or nested 'game'
+    slug = None
+    if 'slug' in info and info.get('slug'):
+        slug = info.get('slug')
+    elif info.get('game') and isinstance(info.get('game'), dict):
+        slug = info.get('game').get('slug')
+
+    if slug:
+        return f"https://gg.deals/game/{slug}/"
+
+    # 3) fallback: try constructing a search URL using the provided name
+    if gameName:
+        query = gameName.replace(' ', '+')
+        return f"https://gg.deals/games/?search={query}"
+
+    return None
