@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Games Organiser</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #ddd; padding: 8px; }
+      th { background: #f4f4f4; text-align: left; }
+      tr:nth-child(even) { background: #fafafa; }
+      tr:hover { background: #f1f1f1; }
+      .empty { color: #888; }
+    </style>
+  </head>
+  <body>
+    <h1>Games Organiser</h1>
+    <p>Displaying data from <strong>names_and_prices.csv</strong>.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>SteamID</th>
+          <th>LowestPriceZAR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for game in games %}
+        <tr>
+          <td>{{ game.Name }}</td>
+          <td>{{ game.SteamID }}</td>
+          <td>{{ game.LowestPriceZAR or "N/A" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="empty">No games available.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
