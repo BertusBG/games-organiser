@@ -25,7 +25,7 @@
     <h1>Games Organiser</h1>
     <button id="regenerate-btn" type="button">Refresh prices from gg.deals</button>
     <div id="progress-wrapper" class="hidden">
-      <h2>Regeneration progress</h2>
+      <h2>Refresh progress</h2>
       <div id="progress-ui">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="flex:1">
@@ -35,9 +35,9 @@
           </div>
           <div id="progress-percent">0%</div>
         </div>
-        <div id="progress-status" class="empty" style="margin-top:8px;">Press the button to start regeneration.</div>
+        <div id="progress-status" class="empty" style="margin-top:8px;">Press the button to start refreshing.</div>
       </div>
-      <pre id="progress-output" class="empty" style="display:none;">Press the button to start regeneration.</pre>
+      <pre id="progress-output" class="empty" style="display:none;">Press the button to start refreshing.</pre>
     </div>
     <table>
       <thead>
@@ -87,7 +87,7 @@
 
       button.addEventListener("click", async () => {
         button.disabled = true;
-        button.textContent = "Regenerating…";
+        button.textContent = "Refreshing…";
         output.textContent = "";
         progressStatus.textContent = "Connecting...";
         progressBar.style.width = "0%";
@@ -120,14 +120,14 @@
                 // server sends TOTAL:<n> first
                 if (line.startsWith("TOTAL:")) {
                   total = parseInt(line.split(":")[1], 10) || 0;
-                  progressStatus.textContent = `Starting regeneration: 0 of ${total}`;
+                  progressStatus.textContent = `Starting refresh: 0 of ${total}`;
                 } else if (line.startsWith("Processed ")) {
                   processed += 1;
                   const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
                   progressBar.style.width = pct + "%";
                   progressPercent.textContent = pct + "%";
                   progressStatus.textContent = `${processed} of ${total} processed`;
-                } else if (line.toLowerCase().includes("regeneration complete") || line.toLowerCase().includes("finished regenerating")) {
+                } else if (line.toLowerCase().includes("refresh complete") || line.toLowerCase().includes("finished refreshing")) {
                   progressBar.style.width = "100%";
                   progressPercent.textContent = "100%";
                   progressStatus.textContent = "Complete.";
@@ -148,14 +148,14 @@
             done = chunkDone;
           }
 
-          progressStatus.textContent = "Finished regenerating. Reloading page...";
+          progressStatus.textContent = "Finished refreshing. Reloading page...";
           setTimeout(() => window.location.reload(), 1200);
         } catch (err) {
           output.textContent += "\nError: " + err.message;
           console.error(err);
         } finally {
           button.disabled = false;
-          button.textContent = "Regenerate CSV";
+          button.textContent = "Refresh CSV";
           // hide the progress area after a short delay if not reloading
           setTimeout(() => {
             if (!document.hidden) progressWrapper.classList.add("hidden");

@@ -1,6 +1,7 @@
 import requests
 import Steam
 import Utils
+from Utils import log_debug, log_err
 import Secrets
 
 apiKey = Secrets.get_secret('GGDEALS_API_KEY')
@@ -21,25 +22,53 @@ def get_price_info(steamID, region='us'):
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    response = requests.get(url, params=params, headers=headers, timeout=10)
-    response.raise_for_status()
-    payload = response.json()
+    try:
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        payload = response.json()
+    except requests.RequestException as e:
+        log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
+        return None
 
     if not payload.get('success'):
+        log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
+        log_err(f"gg.deals API error: {payload.get('message', 'Unknown error')}")
         raise ValueError(f"gg.deals API request failed: {payload}")
 
     data = payload.get('data', {})
     return data.get(str(steamID))
 
 
-def get_lowest_price_zar(gameName, region='us', usd_zar_rate=None):
-    """Return the lowest current retail or keyshop price for a game name."""
+def get_game_info(gameName, region='us', usd_zar_rate=None, fetch_page_url=False):
+    """Return Steam ID, lowest price in ZAR, and optional gg.deals game page URL."""
+    gameName = Utils.expand_abbreviations(gameName)
+    log_debug(f"Fetching info for '{gameName}'")
     steamID = Steam.get_id(gameName)
+    log_debug(f"Steam ID: {steamID}")
     if steamID is None:
+        log_err(f"Could not find Steam ID for '{gameName}'")
+        return None, None, None
+
+    price_zar = get_lowest_price_zar(steamID=steamID, region=region, usd_zar_rate=usd_zar_rate)
+    log_debug(f"Lowest price in ZAR: {price_zar}")
+    gg_url = None
+    if fetch_page_url:
+        gg_url = get_game_page_url(steamID, gameName=gameName, region=region)
+        log_debug(f"gg.deals URL: {minimise_url(gg_url)}")
+    return steamID, price_zar, gg_url
+
+
+def get_lowest_price_zar(gameName=None, steamID=None, region='us', usd_zar_rate=None):
+    """Return the lowest current retail or keyshop price for a game name or Steam ID."""
+    if steamID is None:
+        steamID = Steam.get_id(gameName)
+    if steamID is None:
+        log_err(f"Cannot get price: Steam ID not found for '{gameName}'")
         return None
 
     price_info = get_price_info(steamID, region=region)
     if not price_info or 'prices' not in price_info:
+        log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
         return None
 
     prices = price_info['prices']
@@ -54,6 +83,7 @@ def get_lowest_price_zar(gameName, region='us', usd_zar_rate=None):
             continue
 
     if not candidates:
+        log_err(f"No valid price candidates found for Steam ID {steamID}")
         return None
 
     rate = usd_zar_rate if usd_zar_rate is not None else Utils.get_usd_zar_exchange_rate()
@@ -61,9 +91,11 @@ def get_lowest_price_zar(gameName, region='us', usd_zar_rate=None):
 
 
 def get_game_page_url(steamID, gameName=None, region='us'):
+    log_debug(f"Looking for gg deals url for steamID {steamID}")
     """Best-effort: return a direct gg.deals game page URL for the given Steam ID or None."""
     info = get_price_info(steamID, region=region)
     if not info:
+        log_err(f"No price info found for Steam ID {steamID}, cannot determine gg.deals URL")
         return None
 
     # Try common fields that may contain slug or url
@@ -90,3 +122,17 @@ def get_game_page_url(steamID, gameName=None, region='us'):
         return f"https://gg.deals/games/?search={query}"
 
     return None
+
+def minimise_url(gg_url: str) -> str:
+    from urllib.parse import urlparse
+
+    if not gg_url:
+        return 'N/A'
+
+    s = gg_url.strip()
+    parsed = urlparse(s)
+    path = parsed.path or s
+    segments = [seg for seg in path.split('/') if seg]
+    if segments:
+        return segments[-1]
+    return 'N/A'

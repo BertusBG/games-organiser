@@ -1,13 +1,13 @@
 import csv
+import os
 
 import GoogleSheets
+import GameListTxt
 import GgDeals
 import Secrets
-import Steam
 import Utils
 
 HBAR = '-' * 80
-
 
 def write_names_and_prices_to_csv(names, filename='names_and_prices.csv', region='us'):
     """Write each game name and its lowest ZAR price to a CSV file."""
@@ -18,14 +18,14 @@ def write_names_and_prices_to_csv(names, filename='names_and_prices.csv', region
         writer.writeheader()
 
         for name in names:
-            name = name.replace('W40k', 'Warhammer 40,000')
             steam_id = None
             price_zar = None
             try:
-                steam_id = Steam.get_id(name)
-                if steam_id is not None:
-                    price_zar = GgDeals.get_lowest_price_zar(name, region=region, usd_zar_rate=usd_zar_rate)
+                steam_id, price_zar, _ = GgDeals.get_game_info(
+                    name, region=region, usd_zar_rate=usd_zar_rate
+                )
             except Exception:
+                print(f"Error getting info for '{name}'")
                 price_zar = None
 
             print(f'Processed "{name}": SteamID={steam_id}, LowestPriceZAR={price_zar}')
@@ -38,36 +38,46 @@ def write_names_and_prices_to_csv(names, filename='names_and_prices.csv', region
     return filename
 
 
-def print_lowest_prices_for_names(names, region='us'):
+def print_lowest_prices_for_names(names: list[str], region='us', max_num_games=None):
     """Print the lowest ZAR price for each name, with W40k rewritten."""
     usd_zar_rate = Utils.get_usd_zar_exchange_rate()
 
-    for name in names:
-        if not 'W40k' in name:
-            continue
-
-        search_name = name.replace('W40k', 'Warhammer 40,000')
+    for index, name in enumerate(names):
         steam_id = None
         price_zar = None
+        gg_url = None
         try:
-            steam_id = Steam.get_id(search_name)
-            if steam_id is not None:
-                price_zar = GgDeals.get_lowest_price_zar(search_name, region=region, usd_zar_rate=usd_zar_rate)
+            steam_id, price_zar, gg_url = GgDeals.get_game_info(
+                name, region=region, usd_zar_rate=usd_zar_rate, fetch_page_url=True
+            )
         except Exception:
+            print(f"Error getting info for '{name}'")
             price_zar = None
 
+        gg_url = GgDeals.minimise_url(gg_url)
+
         if price_zar is not None:
-            print(f'{name}: SteamID={steam_id}, LowestPriceZAR=R {price_zar:.2f}')
+            price_str = f'R {price_zar:.2f}'
         else:
-            print(f'{name}: SteamID={steam_id or "N/A"}, LowestPriceZAR=not available')
+            price_str = 'N/A'
 
+        # Truncate or pad name to 20 chars, steam_id to 10 chars for neat printing
+        nameCap = 30
+        name = name[:nameCap].ljust(nameCap)
+        steam_id = str(steam_id).ljust(8)
 
+        print(f'{name} {steam_id} {price_str:>10}   {gg_url}')
+
+        if max_num_games is not None and index+1 >= max_num_games:
+            break
+
+    print(f"\nProcessed {index + 1} games.")
 
 if __name__ == '__main__':
+    os.system('cls' if os.name == 'nt' else 'clear')
     SPREADSHEET_ID = Secrets.get_secret('SPREADSHEET_ID')
     sheet_name = 'Database '
     column_name = 'Name'
-    names = GoogleSheets.get_column_values(SPREADSHEET_ID, sheet_name, column_name)
+    names = GameListTxt.get_game_names(SPREADSHEET_ID)
 
-    write_names_and_prices_to_csv(names)
-    #print_lowest_prices_for_names(names)
+    print_lowest_prices_for_names(names, max_num_games=1)

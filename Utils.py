@@ -1,4 +1,24 @@
 import requests
+from enum import Enum, auto
+
+
+class LogLevel(Enum):
+    NONE = auto()
+    DEBUG = auto()
+    ERROR = auto()
+
+
+LOG_LEVEL = LogLevel.ERROR
+
+
+def log_debug(message):
+    if LOG_LEVEL == LogLevel.DEBUG:
+        print(f"<<< {message} >>>")
+
+
+def log_err(message):
+    if LOG_LEVEL in (LogLevel.DEBUG, LogLevel.ERROR):
+        print(f"!!! ERROR: {message} !!!")
 
 
 def get_usd_zar_exchange_rate():
@@ -53,3 +73,9 @@ def print_in_columns(names):
         lines.append('  '.join(row_cells))
 
     print('\n'.join(lines))
+
+def expand_abbreviations(name):
+    """Expand common abbreviations in game names."""
+    name = name.replace('W40k', 'Warhammer 40,000')
+    # Add more abbreviation expansions as needed
+    return name
