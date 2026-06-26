@@ -62,7 +62,7 @@ STEAM_SEARCH_URL = (
 
 STEAM_APP_DETAILS_URL = (
     "https://store.steampowered.com/api/appdetails"
-    "?appids={}&l=en"
+    "?appids={}&l=en&cc=ZA"
 )
 
 STEAM_REVIEWS_URL_TEMPLATE = (

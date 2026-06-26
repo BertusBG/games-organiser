@@ -52,7 +52,13 @@
           </div>
           <div>
             <dt>Steam price</dt>
-            <dd>{{ game_info.steam_price.current_price if game_info.steam_price else 'N/A' }}</dd>
+            <dd>
+              {% if game_info.steam_price %}
+                {{ game_info.steam_price.current_price }}
+              {% else %}
+                N/A
+              {% endif %}
+            </dd>
           </div>
           <div>
             <dt>Discount</dt>
