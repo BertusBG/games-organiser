@@ -1,15 +1,20 @@
 import csv
 import os
+import sys
+from pathlib import Path
 
-import GoogleSheets
-import GameListTxt
-import GgDeals
-import Secrets
-import Utils
+# Add parent directory to path to import modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from lib import GoogleSheets
+from lib import GameListTxt
+from lib import GgDeals
+from lib import Secrets
+from lib import Utils
 
 HBAR = '-' * 80
 
-def write_names_and_prices_to_csv(names, filename='names_and_prices.csv', region='us'):
+def write_names_and_prices_to_csv(names, filename='data/names_and_prices.csv', region='us'):
     """Write each game name and its lowest ZAR price to a CSV file."""
     usd_zar_rate = Utils.get_usd_zar_exchange_rate()
     fieldnames = ['Name', 'SteamID', 'LowestPriceZAR']

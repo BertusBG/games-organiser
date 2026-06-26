@@ -1,8 +1,8 @@
 import requests
-import Steam
-import Utils
-from Utils import log_debug, log_err
-import Secrets
+from . import Steam
+from . import Utils
+from .Utils import log_debug, log_err
+from . import Secrets
 
 apiKey = Secrets.get_secret('GGDEALS_API_KEY')
 
@@ -23,7 +23,15 @@ def get_price_info(steamID, region='us'):
     }
 
     try:
-        response = requests.get(url, params=params, headers=headers, timeout=10)
+        session = requests.Session()
+        session.trust_env = False
+        response = session.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=10,
+            proxies={"http": None, "https": None},
+        )
         response.raise_for_status()
         payload = response.json()
     except requests.RequestException as e:

@@ -2,19 +2,23 @@ from flask import Flask, Response, render_template, stream_with_context
 import csv
 import traceback
 import os
+import sys
 from pathlib import Path
 
-import GameListTxt
-import GgDeals
-import Secrets
-import Utils
-from Utils import log_debug, log_err
+# Add parent directories to path to import modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from lib import GameListTxt
+from lib import GgDeals
+from lib import Secrets
+from lib import Utils
+from lib.Utils import log_debug, log_err
 
 MAX_GAMES = 10  # limit for testing
 
 app = Flask(__name__)
 
-CSV_PATH = Path(__file__).parent / "names_and_prices.csv"
+CSV_PATH = Path(__file__).parent.parent.parent / "data" / "names_and_prices.csv"
 
 
 def load_games():
@@ -55,7 +59,9 @@ def index():
         return "Error loading page", 500
 
 
-def regenerate_csv(names, filename="names_and_prices.csv", region="us"):
+def regenerate_csv(names, filename=None, region="us"):
+    if filename is None:
+        filename = str(Path(__file__).parent.parent.parent / "data" / "names_and_prices.csv")
     usd_zar_rate = Utils.get_usd_zar_exchange_rate()
     fieldnames = ["Name", "SteamID", "LowestPriceZAR", "GGDealsURL"]
 
@@ -129,4 +135,4 @@ def regenerate():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)

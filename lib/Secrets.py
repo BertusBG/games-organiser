@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 
-SECRETS_PATH = Path(__file__).parent / 'secrets.json'
+SECRETS_PATH = Path(__file__).parent.parent / 'data' / 'secrets.json'
 
 
 def load_secrets() -> dict[str, str]:

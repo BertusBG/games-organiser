@@ -2,6 +2,14 @@ import requests
 import re
 import json
 import difflib
+import sys
+from pathlib import Path
+from bs4 import BeautifulSoup
+
+# Add parent directory to path to import modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from lib import Secrets
 
 STEAM_SEARCH_URL = (
     "https://store.steampowered.com/api/storesearch/"
@@ -21,7 +29,7 @@ STEAM_REVIEWS_URL_TEMPLATE = (
 FIXED_GAME_NAME = None  # Set to a specific game name for testing, or None for interactive mode
 
 def get_game_info(game_name: str, exchange_rate=None) -> bool:
-    gg_api_key = "pKkjsaEY6SWkPxiyeb0SGHkgSIMfSQVM"
+    gg_api_key = Secrets.get_secret('GGDEALS_API_KEY')
 
     steam_app_id = find_steam_app_id(game_name)
 
@@ -29,6 +37,7 @@ def get_game_info(game_name: str, exchange_rate=None) -> bool:
         print("Could not find Steam App ID")
         return True
 
+    print("Reading from Steam App Details API...")
     request = STEAM_APP_DETAILS_URL.format(steam_app_id)
     steam_response_raw = requests.get(
         request,
@@ -73,6 +82,11 @@ def get_game_info(game_name: str, exchange_rate=None) -> bool:
         "store_tags":
             extract_store_tags(
                 steam_data
+            ),
+
+        "user_tags":
+            fetch_user_tags(
+                steam_app_id
             )
     }
 
@@ -90,6 +104,7 @@ def normalize_title(text):
 
 def find_steam_app_id(game_name):
     try:
+        print("Reading from Steam Search API...")
         response = requests.get(
             STEAM_SEARCH_URL.format(
                 requests.utils.quote(game_name)
@@ -238,8 +253,51 @@ def extract_store_tags(steam_data):
     })
 
 
+def extract_user_tags_from_steam_markup(markup):
+    if not markup:
+        return []
+
+    soup = BeautifulSoup(markup, "html.parser")
+    tags = []
+
+    for anchor in soup.select(".glance_tags a.app_tag"):
+        tag_name = anchor.get_text(" ", strip=True)
+        if tag_name:
+            tags.append(tag_name)
+
+    if not tags:
+        for anchor in soup.select("a.app_tag"):
+            tag_name = anchor.get_text(" ", strip=True)
+            if tag_name:
+                tags.append(tag_name)
+
+    return tags
+
+
+def fetch_user_tags(steam_app_id):
+    try:
+        print("Reading from Steam Store page for user tags...")
+        response = requests.get(
+            f"https://store.steampowered.com/app/{steam_app_id}",
+            timeout=10,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (X11; Linux x86_64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                )
+            }
+        )
+        response.raise_for_status()
+        return extract_user_tags_from_steam_markup(response.text)
+
+    except Exception:
+        return []
+
+
 def fetch_review_statistics(steam_app_id):
     try:
+        print("Reading from Steam Reviews API...")
         review_response = requests.get(
             STEAM_REVIEWS_URL_TEMPLATE.format(steam_app_id),
             timeout=10
@@ -293,6 +351,7 @@ def extract_steam_price_information(steam_data):
 
 def fetch_usd_to_zar_rate():
     try:
+        print("Fetching USD to ZAR exchange rate...")
         response = requests.get(
             "https://open.er-api.com/v6/latest/USD",
             timeout=10
@@ -320,6 +379,7 @@ def fetch_gg_deals_price(steam_app_id, gg_api_key, exchange_rate=None):
     }
 
     try:
+        print("Reading from GG Deals API...")
         response = requests.get(
             gg_url,
             params=params,

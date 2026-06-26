@@ -2,8 +2,8 @@ import csv
 from urllib.parse import quote
 from urllib.request import urlopen
 
-import Utils
-from Utils import log_debug, log_err
+from . import Utils
+from .Utils import log_debug, log_err
 
 __all__ = [
     'get_column_values',
