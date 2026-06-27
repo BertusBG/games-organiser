@@ -319,10 +319,13 @@ def _fetch_gg_deals_price(steam_app_id, gg_api_key, exchange_rate=None):
     }
 
     try:
-        response = requests.get(
+        session = requests.Session()
+        session.trust_env = False
+        response = session.get(
             gg_url,
             params=params,
-            timeout=10
+            timeout=10,
+            proxies={"http": None, "https": None},
         ).json()
 
         if not response.get("success"):
