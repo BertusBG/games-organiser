@@ -1,5 +1,7 @@
+import re
 import requests
 from urllib.parse import quote_plus
+from bs4 import BeautifulSoup
 
 from . import Utils
 
@@ -74,7 +76,7 @@ def get_user_tags(steam_app_id):
             },
         )
         response.raise_for_status()
-        return Utils.extract_user_tags_from_steam_markup(response.text)
+        return _extract_user_tags_from_steam_markup(response.text)
     except Exception:
         return []
 
@@ -90,7 +92,7 @@ def extract_minimum_requirements(steam_data):
             'storage': None,
             'additional_notes': [],
         }
-    return Utils.parse_system_requirements(pc_requirements.get('minimum', ''))
+    return _parse_system_requirements(pc_requirements.get('minimum', ''))
 
 
 def extract_store_tags(steam_data):
@@ -118,3 +120,67 @@ def extract_steam_price_information(steam_data):
         'current_price': price_overview.get('final_formatted', 'N/A'),
         'discount_percent': price_overview.get('discount_percent', 0),
     }
+
+
+def _parse_system_requirements(requirements_text):
+    requirements_text = requirements_text or ""
+    requirements_text = re.sub(r"<br\s*/?>", "\n", requirements_text)
+    requirements_text = re.sub(r"<.*?>", "", requirements_text)
+
+    requirement_lines = [
+        line.strip()
+        for line in requirements_text.split("\n")
+        if line.strip()
+    ]
+
+    structured_requirements = {
+        "operating_system": None,
+        "cpu": None,
+        "ram": None,
+        "gpu": None,
+        "storage": None,
+        "additional_notes": []
+    }
+
+    gpu_label_pattern = re.compile(r"(Graphics|GPU|Video(?:\s*Card)?):\s*(.+)", re.I)
+
+    for requirement_line in requirement_lines:
+        lower_line = requirement_line.lower()
+        gpu_match = gpu_label_pattern.search(requirement_line)
+        if gpu_match:
+            structured_requirements["gpu"] = gpu_match.group(2).strip()
+            continue
+
+        if "os" in lower_line:
+            structured_requirements["operating_system"] = requirement_line.split(":", 1)[-1].strip()
+        elif "processor" in lower_line or "cpu" in lower_line:
+            structured_requirements["cpu"] = requirement_line.split(":", 1)[-1].strip()
+        elif "memory" in lower_line or "ram" in lower_line:
+            structured_requirements["ram"] = requirement_line.split(":", 1)[-1].strip()
+        elif "storage" in lower_line or "disk" in lower_line:
+            structured_requirements["storage"] = requirement_line.split(":", 1)[-1].strip()
+        else:
+            structured_requirements["additional_notes"].append(requirement_line)
+
+    return structured_requirements
+
+
+def _extract_user_tags_from_steam_markup(markup):
+    if not markup:
+        return []
+
+    soup = BeautifulSoup(markup, "html.parser")
+    tags = []
+
+    for anchor in soup.select(".glance_tags a.app_tag"):
+        tag_name = anchor.get_text(" ", strip=True)
+        if tag_name:
+            tags.append(tag_name)
+
+    if not tags:
+        for anchor in soup.select("a.app_tag"):
+            tag_name = anchor.get_text(" ", strip=True)
+            if tag_name:
+                tags.append(tag_name)
+
+    return tags

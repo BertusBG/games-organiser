@@ -75,17 +75,7 @@ def _get_price_info(steamID: int) -> dict[str]:
     }
 
     try:
-        session = requests.Session()
-        session.trust_env = False
-        response = session.get(
-            url,
-            params=params,
-            headers=headers,
-            timeout=10,
-            proxies={"http": None, "https": None},
-        )
-        response.raise_for_status()
-        payload = response.json()
+        payload = Utils.get_with_no_proxy(url, params)
     except requests.RequestException as e:
         log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
         return None
