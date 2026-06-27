@@ -1,8 +1,6 @@
 import requests
-from . import Steam
-from . import Utils
+from . import Secrets, Steam, Utils
 from .Utils import log_debug, log_err
-from . import Secrets
 
 apiKey = Secrets.get_secret('GGDEALS_API_KEY')
 
@@ -47,6 +45,41 @@ def get_price_info(steamID, region='us'):
     return data.get(str(steamID))
 
 
+def get_lowest_price_info(steamID, region='us', usd_zar_rate=None):
+    """Return the lowest current gg.deals price in USD and ZAR for a Steam app ID."""
+    price_info = get_price_info(steamID, region=region)
+    if not price_info or 'prices' not in price_info:
+        log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
+        return None
+
+    prices = price_info.get('prices', {})
+    candidates = []
+    for field in ('currentRetail', 'currentKeyshops'):
+        value = prices.get(field)
+        if value is None:
+            continue
+        try:
+            candidates.append(float(value))
+        except (ValueError, TypeError):
+            continue
+
+    if not candidates:
+        log_err(f"No valid price candidates found for Steam ID {steamID}")
+        return None
+
+    lowest_usd = min(candidates)
+    if usd_zar_rate is None:
+        try:
+            usd_zar_rate = Utils.get_usd_zar_exchange_rate()
+        except Exception:
+            usd_zar_rate = None
+
+    return {
+        'usd': lowest_usd,
+        'zar': round(lowest_usd * usd_zar_rate, 2) if usd_zar_rate is not None else None,
+    }
+
+
 def get_game_info(gameName, region='us', usd_zar_rate=None, fetch_page_url=False):
     """Return Steam ID, lowest price in ZAR, and optional gg.deals game page URL."""
     gameName = Utils.expand_abbreviations(gameName)
@@ -74,28 +107,10 @@ def get_lowest_price_zar(gameName=None, steamID=None, region='us', usd_zar_rate=
         log_err(f"Cannot get price: Steam ID not found for '{gameName}'")
         return None
 
-    price_info = get_price_info(steamID, region=region)
-    if not price_info or 'prices' not in price_info:
-        log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
+    price_info = get_lowest_price_info(steamID, region=region, usd_zar_rate=usd_zar_rate)
+    if not price_info:
         return None
-
-    prices = price_info['prices']
-    candidates = []
-    for field in ('currentRetail', 'currentKeyshops'):
-        value = prices.get(field)
-        if value is None:
-            continue
-        try:
-            candidates.append(float(value))
-        except (ValueError, TypeError):
-            continue
-
-    if not candidates:
-        log_err(f"No valid price candidates found for Steam ID {steamID}")
-        return None
-
-    rate = usd_zar_rate if usd_zar_rate is not None else Utils.get_usd_zar_exchange_rate()
-    return min(candidates) * rate
+    return price_info.get('zar')
 
 
 def get_game_page_url(steamID, gameName=None, region='us'):
@@ -106,15 +121,11 @@ def get_game_page_url(steamID, gameName=None, region='us'):
         log_err(f"No price info found for Steam ID {steamID}, cannot determine gg.deals URL")
         return None
 
-    # Try common fields that may contain slug or url
-    # API structures can vary; check multiple possibilities
-    # 1) direct url
     for key in ('url', 'game_url', 'link'):
         val = info.get(key)
         if isinstance(val, str) and val:
             return val
 
-    # 2) slug under top-level or nested 'game'
     slug = None
     if 'slug' in info and info.get('slug'):
         slug = info.get('slug')
@@ -124,12 +135,12 @@ def get_game_page_url(steamID, gameName=None, region='us'):
     if slug:
         return f"https://gg.deals/game/{slug}/"
 
-    # 3) fallback: try constructing a search URL using the provided name
     if gameName:
         query = gameName.replace(' ', '+')
         return f"https://gg.deals/games/?search={query}"
 
     return None
+
 
 def minimise_url(gg_url: str) -> str:
     from urllib.parse import urlparse

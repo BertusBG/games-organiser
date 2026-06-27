@@ -5,12 +5,12 @@ from pathlib import Path
 # Add parent directory to path to import modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.GameInfoCollector import build_game_info, fetch_usd_to_zar_rate
+from lib import Utils, GameInfoCollector
 
 FIXED_GAME_NAME = None  # Set to a specific game name for testing, or None for interactive mode
 
 def print_game_info(game_name: str, exchange_rate=None) -> bool:
-    game_info = build_game_info(game_name, exchange_rate)
+    game_info = GameInfoCollector.build_game_info(game_name, exchange_rate)
     if not game_info:
         print("Could not find Steam App ID")
         return True
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     # Clear the console screen
     print("\033c", end="")
 
-    exchange_rate = fetch_usd_to_zar_rate()
+    exchange_rate = Utils.get_usd_zar_exchange_rate()
     print("USD→ZAR RATE:", exchange_rate)
 
     if FIXED_GAME_NAME:
