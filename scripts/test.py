@@ -27,7 +27,7 @@ def write_names_and_prices_to_csv(names, filename='data/names_and_prices.csv', r
             price_zar = None
             try:
                 steam_id, price_zar, _ = GgDeals.get_game_info(
-                    name, region=region, usd_zar_rate=usd_zar_rate
+                    name, usd_zar_rate=usd_zar_rate
                 )
             except Exception:
                 print(f"Error getting info for '{name}'")
@@ -53,13 +53,14 @@ def print_lowest_prices_for_names(names: list[str], region='us', max_num_games=N
         gg_url = None
         try:
             steam_id, price_zar, gg_url = GgDeals.get_game_info(
-                name, region=region, usd_zar_rate=usd_zar_rate, fetch_page_url=True
+                name, usd_zar_rate=usd_zar_rate
             )
-        except Exception:
+        except Exception as e:
             print(f"Error getting info for '{name}'")
+            print(e)
             price_zar = None
 
-        gg_url = GgDeals.minimise_url(gg_url)
+        gg_url = Utils.minimise_url(gg_url)
 
         if price_zar is not None:
             price_str = f'R {price_zar:.2f}'
@@ -83,6 +84,6 @@ if __name__ == '__main__':
     SPREADSHEET_ID = Secrets.get_secret('SPREADSHEET_ID')
     sheet_name = 'Database '
     column_name = 'Name'
-    names = GameListTxt.get_game_names(SPREADSHEET_ID)
+    names = GameListTxt.get_game_names()
 
     print_lowest_prices_for_names(names, max_num_games=1)

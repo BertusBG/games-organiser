@@ -19,7 +19,7 @@ def build_game_info(game_name: str, exchange_rate=None):
         "steam_price": Steam.extract_steam_price_information(steam_data),
         "gg_lowest_price": GgDeals.get_lowest_price_info(
             steam_app_id,
-            usd_zar_rate=exchange_rate,
+            exchange_rate,
         ),
         "minimum_requirements": Steam.extract_minimum_requirements(steam_data),
         "store_tags": Steam.extract_store_tags(steam_data),

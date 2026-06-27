@@ -83,7 +83,7 @@ def regenerate_csv(names, filename=None, region="us"):
             try:
                 log_debug(f"Getting game info for '{name}' from gg.deals")
                 steam_id, price_zar, gg_url = GgDeals.get_game_info(
-                    name, region=region, usd_zar_rate=usd_zar_rate, fetch_page_url=True
+                    name, usd_zar_rate=usd_zar_rate
                 )
                 log_debug(f"Steam id for {name}: {steam_id}")
                 if price_zar:

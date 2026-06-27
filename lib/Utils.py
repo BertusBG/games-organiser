@@ -10,7 +10,7 @@ class LogLevel(Enum):
     ERROR = auto()
 
 
-LOG_LEVEL = LogLevel.ERROR
+LOG_LEVEL = LogLevel.DEBUG
 
 
 def log_debug(message):
@@ -151,3 +151,18 @@ def extract_user_tags_from_steam_markup(markup):
                 tags.append(tag_name)
 
     return tags
+
+
+def minimise_url(url: str) -> str:
+    from urllib.parse import urlparse
+
+    if not url:
+        return 'N/A'
+
+    s = url.strip()
+    parsed = urlparse(s)
+    path = parsed.path or s
+    segments = [seg for seg in path.split('/') if seg]
+    if segments:
+        return segments[-1]
+    return 'N/A'
