@@ -1,0 +1,63 @@
+<h2>Google Sheets Export</h2>
+
+<table class="sheet-table" id="sheetTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Steam ID</th>
+            <th>Year</th>
+            <th>Review rating</th>
+            <th>Number of reviews</th>
+            <th>Full price</th>
+            <th>Discount price</th>
+            <th>GG price USD</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for g in game_infos %}
+            {% if not g.error %}
+                <tr>
+                    <td>{{ g.name }}</td>
+                    <td>
+                        <a href="https://store.steampowered.com/app/{{ g.steam_app_id }}">
+                            {{ g.steam_app_id }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if g.release_date %}
+                            {{ g.release_date.split(",")[-1].strip() }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if g.reviews %}
+                            {{ g.reviews.percent_positive }}%
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if g.reviews %}
+                            {{ g.reviews.total_reviews }}
+                        {% endif %}
+                    </td>
+                    <td>{{ g.steam_price.get("full_price","") }}</td>
+                    <td>
+                        {% if g.steam_price.get("discount_percent",0) > 0 %}
+                            {{ g.steam_price.get("current_price","") }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if g.gg_lowest_price %}
+                            <a href="{{ g.gg_lowest_price.gg_url }}">
+                                {{ g.gg_lowest_price.usd }}
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<button class="copy-btn" onclick="copyTable()">
+    Copy to Google Sheets
+</button>

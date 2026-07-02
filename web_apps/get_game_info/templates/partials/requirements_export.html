@@ -1,0 +1,30 @@
+{% if game_infos|length > 1 %}
+
+<h2>System Requirements Export</h2>
+
+<pre id="reqText">
+{% for g in game_infos %}
+{% if not g.error %}
+{{ g.name }}
+
+{% if g.minimum_requirements %}
+    {% if g.minimum_requirements is mapping %}
+        {% for k, v in g.minimum_requirements.items() %}
+{{ k }}: {{ v }}
+        {% endfor %}
+    {% else %}
+{{ g.minimum_requirements }}
+    {% endif %}
+{% else %}
+No requirements available
+{% endif %}
+
+{% endif %}
+{% endfor %}
+</pre>
+
+<button class="copy-btn" onclick="copyRequirements()">
+    Copy System Requirements
+</button>
+
+{% endif %}

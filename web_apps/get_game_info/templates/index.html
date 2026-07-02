@@ -1,125 +1,27 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Steam Game Info</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 24px; }
-      .container { max-width: 960px; margin: auto; }
-      label, input, button, textarea { font-size: 1rem; }
-      input[type=text] { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
-      button { padding: 10px 16px; cursor: pointer; }
-      .error { color: #b00; }
-      .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 24px; background: #fff; }
-      .card img { max-width: 240px; display: block; margin: 0 0 16px; }
-      .details { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-      .details dt { font-weight: bold; }
-      .details dd { margin: 0 0 12px 0; }
-      .tag-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
-      .tag-list li { background: #f4f4f4; padding: 6px 10px; border-radius: 999px; }
-      pre { white-space: pre-wrap; word-break: break-word; background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 6px; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Steam Game Info Lookup</h1>
-      <form method="post">
-        <label for="game-name">Game name</label>
-        <input id="game-name" name="game_name" type="text" value="{{ game_name or '' }}" placeholder="Enter a game name" />
-        <button type="submit">Lookup</button>
-      </form>
+{% extends "base.html" %}
 
-      {% if error %}
-      <p class="error">{{ error }}</p>
-      {% endif %}
+{% block content %}
 
-      {% if game_info %}
-      <div class="card">
-        <h2>{{ game_info.name or 'Unknown game' }}</h2>
-        {% if game_info.thumbnail %}
-        <img src="{{ game_info.thumbnail }}" alt="{{ game_info.name }} header image" />
-        {% endif %}
+<h1>Steam Game Info Lookup</h1>
 
-        <dl class="details">
-          <div>
-            <dt>Steam App ID</dt>
-            <dd>{{ game_info.steam_app_id or 'N/A' }}</dd>
-          </div>
-          <div>
-            <dt>Release date</dt>
-            <dd>{{ game_info.release_date or 'N/A' }}</dd>
-          </div>
-          <div>
-            <dt>Steam price</dt>
-            <dd>
-              {% if game_info.steam_price %}
-                {{ game_info.steam_price.current_price }}
-              {% else %}
-                N/A
-              {% endif %}
-            </dd>
-          </div>
-          <div>
-            <dt>Discount</dt>
-            <dd>{{ game_info.steam_price.discount_percent if game_info.steam_price else 'N/A' }}%</dd>
-          </div>
-          <div>
-            <dt>GG Deals lowest</dt>
-            <dd>
-              {% if game_info.gg_lowest_price %}
-                {{ game_info.gg_lowest_price.usd | default('N/A') }} USD
-                {% if game_info.gg_lowest_price.zar %}
-                  ({{ game_info.gg_lowest_price.zar }} ZAR)
-                {% endif %}
-              {% else %}
-                N/A
-              {% endif %}
-            </dd>
-          </div>
-          <div>
-            <dt>Reviews</dt>
-            <dd>
-              {% if game_info.reviews %}
-                {{ game_info.reviews.percent_positive }}% positive
-                ({{ game_info.reviews.total_reviews }} total)
-              {% else %}
-                N/A
-              {% endif %}
-            </dd>
-          </div>
-        </dl>
+<form method="post">
+    <label>Game names (one per line)</label>
+    <textarea name="game_name">{{ game_input or '' }}</textarea>
+    <button type="submit">Lookup</button>
+</form>
 
-        {% if game_info.minimum_requirements %}
-        <section>
-          <h3>Minimum requirements</h3>
-          <pre>{{ game_info.minimum_requirements | tojson(indent=2) }}</pre>
-        </section>
-        {% endif %}
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
 
-        {% if game_info.store_tags %}
-        <section>
-          <h3>Store tags</h3>
-          <ul class="tag-list">
-            {% for tag in game_info.store_tags %}
-            <li>{{ tag }}</li>
-            {% endfor %}
-          </ul>
-        </section>
-        {% endif %}
+{% if game_infos %}
 
-        {% if game_info.user_tags %}
-        <section>
-          <h3>User tags</h3>
-          <ul class="tag-list">
-            {% for tag in game_info.user_tags %}
-            <li>{{ tag }}</li>
-            {% endfor %}
-          </ul>
-        </section>
-        {% endif %}
-      </div>
-      {% endif %}
-    </div>
-  </body>
-</html>
+    {% set single = game_infos|length == 1 %}
+
+    {% include "partials/game_card.html" %}
+    {% include "partials/export_table.html" %}
+    {% include "partials/requirements_export.html" %}
+
+{% endif %}
+
+{% endblock %}

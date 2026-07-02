@@ -1,11 +1,12 @@
 import requests
 from . import Secrets, Steam, Utils
 from .Utils import log_debug, log_err
+from typing import Tuple, Dict
 
-apiKey = Secrets.get_secret('GGDEALS_API_KEY')
+# Support mocking out the gg.deals interface, e.g. if the site is blocked
+MOCK_OUT = False
 
-
-def get_game_info(gameName: str, usd_zar_rate: float = None) -> tuple[int, float, str]:
+def get_game_info(gameName: str, usd_zar_rate: float = None) -> Tuple[int, float, str]:
     """Return Steam ID, lowest price in ZAR, and optional gg.deals game page URL."""
     gameName = Utils.expand_abbreviations(gameName)
     log_debug(f"Fetching info for '{gameName}'")
@@ -24,7 +25,23 @@ def get_game_info(gameName: str, usd_zar_rate: float = None) -> tuple[int, float
     return steamID, price_zar, gg_url
 
 
-def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> dict[str, float]:
+def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str, float]:
+
+    if usd_zar_rate is None:
+        try:
+            usd_zar_rate = Utils.get_usd_zar_exchange_rate()
+        except Exception:
+            usd_zar_rate = None
+
+    if MOCK_OUT:
+        gg_url = "https://supersport.com/"
+        lowest_usd = 100
+        return {
+            'usd': lowest_usd,
+            'zar': round(lowest_usd * usd_zar_rate, 2) if usd_zar_rate is not None else None,
+            'gg_url': gg_url,
+        }
+
     """Return the lowest current gg.deals price in USD and ZAR for a Steam app ID."""
     price_info = _get_price_info(steamID)
     if not price_info or 'prices' not in price_info:
@@ -47,21 +64,26 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> dict[str,
         return None
 
     lowest_usd = min(candidates)
-    if usd_zar_rate is None:
-        try:
-            usd_zar_rate = Utils.get_usd_zar_exchange_rate()
-        except Exception:
-            usd_zar_rate = None
+
+    gg_url = _get_game_page_url(steamID)
 
     return {
         'usd': lowest_usd,
         'zar': round(lowest_usd * usd_zar_rate, 2) if usd_zar_rate is not None else None,
+        'gg_url': gg_url,
     }
 
 
-def _get_price_info(steamID: int) -> dict[str]:
+def _get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return types once module refactored
     """Retrieve gg.deals price information for a Steam app ID."""
     if steamID is None:
+        return None
+
+    try:
+        apiKey = Secrets.get_secret('GGDEALS_API_KEY')
+    except Exception as e:
+        log_err('Could not access gg.deals API key')
+        log_err(e)
         return None
 
     url = 'https://api.gg.deals/v1/prices/by-steam-app-id/'
@@ -69,9 +91,6 @@ def _get_price_info(steamID: int) -> dict[str]:
         'key': apiKey,
         'ids': str(steamID),
         'region': 'us',
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
     try:

@@ -1,0 +1,101 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 24px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+}
+
+textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 10px 16px;
+    margin-top: 8px;
+    cursor: pointer;
+}
+
+.error {
+    color: #b00;
+}
+
+.card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 24px;
+    background: #fff;
+}
+
+.card img {
+    max-width: 240px;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.details {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.details dt {
+    font-weight: bold;
+}
+
+.details dd {
+    margin: 0 0 12px;
+}
+
+.tag-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-list li {
+    background: #f4f4f4;
+    padding: 6px 10px;
+    border-radius: 999px;
+}
+
+.sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 24px;
+}
+
+.sheet-table th,
+.sheet-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+
+.sheet-table th {
+    background: #f4f4f4;
+}
+
+.copy-btn {
+    background: #2d6cdf;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #fafafa;
+    border: 1px solid #eee;
+    padding: 12px;
+    border-radius: 6px;
+}

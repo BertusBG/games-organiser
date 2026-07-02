@@ -30,33 +30,64 @@ def format_game_info(game_info):
     }
 
 
+def build_batch(game_names):
+    results = []
+
+    for name in game_names:
+        try:
+            info = build_game_info(name)
+            if not info:
+                results.append({"error": True, "name": name})
+                continue
+
+            results.append(format_game_info(info))
+        except Exception:
+            results.append({"error": True, "name": name})
+
+    return results
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
-    game_name = None
-    game_info = None
+    game_input = ""
+    game_infos = []
     error = None
 
+    game_names = []
+
+    # Support URL query param, e.g. /?game=elden+ring
+    if request.method == "GET":
+        query_game = request.args.get("game", "").strip()
+
+        if query_game:
+            game_input = query_game
+            game_names = [query_game]
+
+    # Support entering game names in text box using POST
     if request.method == "POST":
-        game_name = request.form.get("game_name", "").strip()
-        if not game_name:
-            error = "Please enter a game name."
-        else:
-            try:
-                game_info = build_game_info(game_name)
-                if not game_info:
-                    error = "Could not find Steam App ID or game info for the requested title."
-                else:
-                    game_info = format_game_info(game_info)
-            except Exception as exc:
-                error = str(exc)
+        game_input = request.form.get("game_name", "")
+
+        # split into lines (multi-game support)
+        game_names = [
+            g.strip()
+            for g in game_input.splitlines()
+            if g.strip()
+        ]
+
+    # Shared processing between GET and POST
+    if game_names:
+        game_infos = build_batch(game_names)
+    elif request.method == "POST":
+        error = "Please enter at least one game name."
 
     return render_template(
         "index.html",
-        game_name=game_name,
-        game_info=game_info,
+        game_input=game_input,
+        game_infos=game_infos,
         error=error,
     )
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)
+    print("Example: http://127.0.0.1:5000/?game=elden+ring")
+    app.run(host="0.0.0.0", debug=True, use_reloader=False)

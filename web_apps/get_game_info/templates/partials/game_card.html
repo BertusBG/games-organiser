@@ -1,0 +1,107 @@
+{% if single and not game_infos[0].error %}
+    {% set game_info = game_infos[0] %}
+
+    <div class="card">
+        <h2>{{ game_info.name }}</h2>
+
+        {% if game_info.thumbnail %}
+            <img src="{{ game_info.thumbnail }}">
+        {% endif %}
+
+        <dl class="details">
+            <div>
+                <dt>Steam App ID</dt>
+                <dd>
+                    <a href="https://store.steampowered.com/app/{{ game_info.steam_app_id }}"
+                    target="_blank"
+                    rel="noopener noreferrer">
+                        {{ game_info.steam_app_id }}
+                    </a>
+                </dd>
+            </div>
+
+            <div>
+                <dt>Release date</dt>
+                <dd>{{ game_info.release_date }}</dd>
+            </div>
+
+            <div>
+                <dt>Full price</dt>
+                <dd>
+                    {{ game_info.steam_price.get("full_price","N/A") if game_info.steam_price else "N/A" }}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Current price</dt>
+                <dd>
+                    {{ game_info.steam_price.get("current_price","N/A") if game_info.steam_price else "N/A" }}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Discount</dt>
+                <dd>
+                    {{ game_info.steam_price.get("discount_percent","N/A") if game_info.steam_price else "N/A" }}%
+                </dd>
+            </div>
+
+            <div>
+                <dt>GG Deals lowest</dt>
+                <dd>
+                    {% if game_info.gg_lowest_price %}
+                        <a href="{{ game_info.gg_lowest_price.gg_url }}"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                                {{ game_info.gg_lowest_price.usd }} USD
+                        </a>
+                        {% if game_info.gg_lowest_price.zar %}
+                            ({{ game_info.gg_lowest_price.zar }} ZAR)
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Reviews</dt>
+                <dd>
+                    {% if game_info.reviews %}
+                        {{ game_info.reviews.percent_positive }}%
+                        ({{ game_info.reviews.total_reviews }})
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+
+        {% if game_info.minimum_requirements %}
+            <section>
+                <h3>Minimum requirements</h3>
+                <pre>{{ game_info.minimum_requirements|tojson(indent=2) }}</pre>
+            </section>
+        {% endif %}
+
+        {% if game_info.store_tags %}
+            <section>
+                <h3>Store tags</h3>
+                <ul class="tag-list">
+                    {% for tag in game_info.store_tags %}
+                        <li>{{ tag }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if game_info.user_tags %}
+            <section>
+                <h3>User tags</h3>
+                <ul class="tag-list">
+                    {% for tag in game_info.user_tags %}
+                        <li>{{ tag }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+    </div>
+{% endif %}

@@ -115,9 +115,17 @@ def extract_steam_price_information(steam_data):
             'discount_percent': 0,
         }
 
+    # If the game is not on discount, the full price will be blank,
+    # so populate that with the current price.
+    full_price = price_overview.get('initial_formatted', 'N/A')
+    current_price = price_overview.get('final_formatted', 'N/A')
+
+    if not full_price:
+        full_price = current_price
+
     return {
-        'full_price': price_overview.get('initial_formatted', 'N/A'),
-        'current_price': price_overview.get('final_formatted', 'N/A'),
+        'full_price': full_price,
+        'current_price': current_price,
         'discount_percent': price_overview.get('discount_percent', 0),
     }
 
