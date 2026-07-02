@@ -1,8 +1,8 @@
 import csv
 from urllib.parse import quote
 from urllib.request import urlopen
+from typing import List
 
-from . import Utils
 from .Utils import log_debug, log_err
 
 __all__ = [
@@ -10,7 +10,7 @@ __all__ = [
     'read_public_sheet',
 ]
 
-def get_game_names(sheet_id: str) -> list[str]:
+def get_game_names(sheet_id: str) -> List[str]:
     """Fetch game names from a public Google Sheets tab."""
     return get_column_values(sheet_id, "Database ", "Name")
 
@@ -20,7 +20,7 @@ def _build_gviz_csv_url(spreadsheet_id: str, sheet_name: str) -> str:
     return f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={quoted_sheet_name}'
 
 
-def read_public_sheet(spreadsheet_id: str, sheet_name: str) -> list[dict]:
+def read_public_sheet(spreadsheet_id: str, sheet_name: str) -> List[dict]:
     """Read a public Google Sheets tab and return rows as dictionaries."""
     url = _build_gviz_csv_url(spreadsheet_id, sheet_name)
     try:
@@ -33,7 +33,7 @@ def read_public_sheet(spreadsheet_id: str, sheet_name: str) -> list[dict]:
     return list(csv.DictReader(text))
 
 
-def get_column_values(spreadsheet_id: str, sheet_name: str, column_name: str) -> list[str]:
+def get_column_values(spreadsheet_id: str, sheet_name: str, column_name: str) -> List[str]:
     """Return all values from a named column in a public Google Sheets tab."""
     rows = read_public_sheet(spreadsheet_id, sheet_name)
     if not rows:

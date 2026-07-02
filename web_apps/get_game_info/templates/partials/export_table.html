@@ -11,6 +11,7 @@
             <th>Full price</th>
             <th>Discount price</th>
             <th>GG price USD</th>
+            <th>GG price ZAR</th>
         </tr>
     </thead>
 
@@ -50,6 +51,11 @@
                             <a href="{{ g.gg_lowest_price.gg_url }}">
                                 {{ g.gg_lowest_price.usd }}
                             </a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if g.gg_lowest_price %}
+                            {{ g.gg_lowest_price.zar }}
                         {% endif %}
                     </td>
                 </tr>

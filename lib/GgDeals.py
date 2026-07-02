@@ -6,24 +6,6 @@ from typing import Tuple, Dict
 # Support mocking out the gg.deals interface, e.g. if the site is blocked
 MOCK_OUT = False
 
-def get_game_info(gameName: str, usd_zar_rate: float = None) -> Tuple[int, float, str]:
-    """Return Steam ID, lowest price in ZAR, and optional gg.deals game page URL."""
-    gameName = Utils.expand_abbreviations(gameName)
-    log_debug(f"Fetching info for '{gameName}'")
-    steamID = Steam.get_id(gameName)
-    log_debug(f"Steam ID: {steamID}")
-    if steamID is None:
-        log_err(f"Could not find Steam ID for '{gameName}'")
-        return None, None, None
-
-    price_info = get_lowest_price_info(steamID, usd_zar_rate)
-    price_zar = price_info.get('zar')
-    log_debug(f"Lowest price in ZAR: {price_zar}")
-
-    gg_url = _get_game_page_url(steamID, gameName=gameName)
-    log_debug(f"gg.deals URL: {Utils.minimise_url(gg_url)}")
-    return steamID, price_zar, gg_url
-
 
 def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str, float]:
 
