@@ -1,7 +1,7 @@
-import requests
-from . import Secrets, Steam, Utils
+from requests import RequestException
+from . import Secrets, Utils
 from .Utils import log_debug, log_err
-from typing import Tuple, Dict
+from typing import Dict
 
 # Support mocking out the gg.deals interface, e.g. if the site is blocked
 MOCK_OUT = False
@@ -25,7 +25,7 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str,
         }
 
     """Return the lowest current gg.deals price in USD and ZAR for a Steam app ID."""
-    price_info = _get_price_info(steamID)
+    price_info = get_price_info(steamID)
     if not price_info or 'prices' not in price_info:
         log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
         return None
@@ -56,7 +56,7 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str,
     }
 
 
-def _get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return types once module refactored
+def get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return types once module refactored
     """Retrieve gg.deals price information for a Steam app ID."""
     if steamID is None:
         return None
@@ -77,7 +77,7 @@ def _get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return type
 
     try:
         payload = Utils.get_with_no_proxy(url, params)
-    except requests.RequestException as e:
+    except RequestException as e:
         log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
         return None
 
@@ -93,7 +93,7 @@ def _get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return type
 def _get_game_page_url(steamID: int, gameName: str = None) -> str:
     log_debug(f"Looking for gg deals url for steamID {steamID}")
     """Best-effort: return a direct gg.deals game page URL for the given Steam ID or None."""
-    info = _get_price_info(steamID)
+    info = get_price_info(steamID)
     if not info:
         log_err(f"No price info found for Steam ID {steamID}, cannot determine gg.deals URL")
         return None

@@ -1,13 +1,15 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, Response
 import sys
 from pathlib import Path
 
 try:
     from ...lib.GameInfoCollector import build_game_info
+    from ...lib import GgDeals, Steam
 except (ImportError, ValueError):
     # Fall back to a root-based import when running directly.
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from lib.GameInfoCollector import build_game_info
+    from lib import GgDeals, Steam
 
 app = Flask(__name__, template_folder="templates")
 
@@ -48,7 +50,7 @@ def build_batch(game_names):
 
 
 @app.route("/", methods=["GET", "POST"])
-def index():
+def index() -> str:
     game_input = ""
     game_infos = []
     error = None
@@ -87,7 +89,28 @@ def index():
         error=error,
     )
 
+@app.route('/api/steam', methods=['GET'])
+def forward_steam_request() -> Response:
+    # Support URL query param, e.g. /ggd?steam_id=220
+    steamId = request.args.get("steam_id", "").strip()
+    steamId = int(steamId)
+
+    info = Steam.get_app_details(steamId)
+    return jsonify(info)
+
+@app.route('/api/ggd', methods=['GET'])
+def forward_gg_deals_request() -> Response:
+    # Support URL query param, e.g. /ggd?steam_id=220
+    steamId = request.args.get("steam_id", "").strip()
+    steamId = int(steamId)
+
+    info = GgDeals.get_price_info(steamId)
+    return jsonify(info)
 
 if __name__ == "__main__":
-    print("Example: http://127.0.0.1:5000/?game=elden+ring")
+    print("Example: http://127.0.0.1:5000/?game=hades")
+    print("\n")
+    print("http://127.0.0.1:5000/api/steam?steam_id=220")
+    print("http://127.0.0.1:5000/api/ggd?steam_id=220")
+    print("\n")
     app.run(host="0.0.0.0", debug=True, use_reloader=False)
