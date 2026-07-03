@@ -89,20 +89,14 @@ def index() -> str:
         error=error,
     )
 
-@app.route('/api/steam', methods=['GET'])
-def forward_steam_request() -> Response:
-    # Support URL query param, e.g. /ggd?steam_id=220
-    steamId = request.args.get("steam_id", "").strip()
-    steamId = int(steamId)
-
-    info = Steam.get_app_details(steamId)
-    return jsonify(info)
-
 @app.route('/api/ggd', methods=['GET'])
 def forward_gg_deals_request() -> Response:
     # Support URL query param, e.g. /ggd?steam_id=220
     steamId = request.args.get("steam_id", "").strip()
-    steamId = int(steamId)
+    try:
+        steamId = int(steamId)
+    except:
+        return jsonify({"error": "Integer steam_id is required"}), 400
 
     info = GgDeals.get_price_info(steamId)
     return jsonify(info)
@@ -110,7 +104,6 @@ def forward_gg_deals_request() -> Response:
 if __name__ == "__main__":
     print("Example: http://127.0.0.1:5000/?game=hades")
     print("\n")
-    print("http://127.0.0.1:5000/api/steam?steam_id=220")
     print("http://127.0.0.1:5000/api/ggd?steam_id=220")
     print("\n")
     app.run(host="0.0.0.0", debug=True, use_reloader=False)

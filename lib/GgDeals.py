@@ -1,10 +1,13 @@
-from requests import RequestException
+import requests
 from . import Secrets, Utils
 from .Utils import log_debug, log_err
 from typing import Dict
 
 # Support mocking out the gg.deals interface, e.g. if the site is blocked
 MOCK_OUT = False
+
+# Support redirecting the GG deals API calls
+REDIRECT_API = False
 
 
 def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str, float]:
@@ -56,7 +59,36 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str,
     }
 
 
-def get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return types once module refactored
+def get_price_info(steamID: int) -> Dict: # TODO Re-add all return types once module refactored
+    if REDIRECT_API:
+        return get_price_info_from_redirect(steamID)
+    else:
+        return get_price_info_from_gg_deals(steamID)
+
+
+def get_price_info_from_redirect(steamID: int) -> Dict:
+    """Retrieve gg.deals price information for a Steam app ID by redirecting the API call"""
+    if steamID is None:
+        return None
+
+    print('Redirecting GG deals API')
+    url = Secrets.get_secret('GGDEALS_REDIRECT_URL')
+
+    try:
+        response = requests.get(
+            url,
+            params={"steam_id": steamID},
+        )
+    except requests.RequestException as e:
+        log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
+        return None
+
+    response.raise_for_status()
+    payload = response.json()
+    return payload
+
+
+def get_price_info_from_gg_deals(steamID: int) -> Dict:
     """Retrieve gg.deals price information for a Steam app ID."""
     if steamID is None:
         return None
@@ -77,7 +109,7 @@ def get_price_info(steamID: int): # -> Dict[str]: # TODO Re-add all return types
 
     try:
         payload = Utils.get_with_no_proxy(url, params)
-    except RequestException as e:
+    except requests.RequestException as e:
         log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
         return None
 
