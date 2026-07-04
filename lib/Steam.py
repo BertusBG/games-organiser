@@ -8,6 +8,11 @@ from . import Utils
 
 def get_id(gameName):
     """Return the Steam app ID for a game by searching the Steam store."""
+
+    # Remove non-alphanumeric characters and normalize whitespace for the search query
+    gameName = re.sub(r'[^\w\s]', '', gameName)
+    gameName = gameName.strip()
+
     query = quote_plus(gameName)
     url = f'https://store.steampowered.com/api/storesearch?term={query}&l=en&cc=US&v=1'
     headers = {
