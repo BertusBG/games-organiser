@@ -98,7 +98,7 @@ def forward_gg_deals_request() -> Response:
     except:
         return jsonify({"error": "Integer steam_id is required"}), 400
 
-    info = GgDeals.get_price_info(steamId)
+    info = GgDeals.request_info_from_gg_deals(steamId)
     return jsonify(info)
 
 if __name__ == "__main__":

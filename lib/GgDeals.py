@@ -1,38 +1,34 @@
 import requests
-from . import Secrets, Utils
+from . import Settings, Utils
 from .Utils import log_debug, log_err
 from typing import Dict
 
-# Support mocking out the gg.deals interface, e.g. if the site is blocked
-MOCK_OUT = False
 
-# Support redirecting the GG deals API calls
-REDIRECT_API = False
+def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict:
+    """
+    Return the lowest current gg.deals price in USD and ZAR for a Steam app ID.
+    Returns a dictionary with keys 'usd', 'zar', and 'gg_url', or None if no price info is available.
+    """
 
-
-def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str, float]:
-
+    # Get the exchange rate
     if usd_zar_rate is None:
         try:
             usd_zar_rate = Utils.get_usd_zar_exchange_rate()
         except Exception:
             usd_zar_rate = None
 
-    if MOCK_OUT:
-        gg_url = "https://supersport.com/"
-        lowest_usd = 100
-        return {
-            'usd': lowest_usd,
-            'zar': round(lowest_usd * usd_zar_rate, 2) if usd_zar_rate is not None else None,
-            'gg_url': gg_url,
-        }
+    # Get the info for the given steam ID from either the
+    # gg.deals API or the redirect URL, depending on the setting
+    if Settings.get_setting('REDIRECT_GGDEALS_API', default='false').lower() == 'true':
+        price_info = _request_info_from_redirect(steamID)
+    else:
+        price_info = request_info_from_gg_deals(steamID)
 
-    """Return the lowest current gg.deals price in USD and ZAR for a Steam app ID."""
-    price_info = get_price_info(steamID)
     if not price_info or 'prices' not in price_info:
         log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
         return None
 
+    # Find the lowest price between the retail and keyshops
     prices = price_info.get('prices', {})
     candidates = []
     for field in ('currentRetail', 'currentKeyshops'):
@@ -50,7 +46,8 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str,
 
     lowest_usd = min(candidates)
 
-    gg_url = _get_game_page_url(steamID)
+    # Get the URL for the game on gg.deals
+    gg_url = price_info.get('url') if 'url' in price_info else None
 
     return {
         'usd': lowest_usd,
@@ -59,42 +56,13 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict[str,
     }
 
 
-def get_price_info(steamID: int) -> Dict: # TODO Re-add all return types once module refactored
-    if REDIRECT_API:
-        return get_price_info_from_redirect(steamID)
-    else:
-        return get_price_info_from_gg_deals(steamID)
-
-
-def get_price_info_from_redirect(steamID: int) -> Dict:
-    """Retrieve gg.deals price information for a Steam app ID by redirecting the API call"""
-    if steamID is None:
-        return None
-
-    print('Redirecting GG deals API')
-    url = Secrets.get_secret('GGDEALS_REDIRECT_URL')
-
-    try:
-        response = requests.get(
-            url,
-            params={"steam_id": steamID},
-        )
-    except requests.RequestException as e:
-        log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
-        return None
-
-    response.raise_for_status()
-    payload = response.json()
-    return payload
-
-
-def get_price_info_from_gg_deals(steamID: int) -> Dict:
+def request_info_from_gg_deals(steamID: int) -> Dict:
     """Retrieve gg.deals price information for a Steam app ID."""
     if steamID is None:
         return None
 
     try:
-        apiKey = Secrets.get_secret('GGDEALS_API_KEY')
+        apiKey = Settings.get_setting('GGDEALS_API_KEY')
     except Exception as e:
         log_err('Could not access gg.deals API key')
         log_err(e)
@@ -122,33 +90,23 @@ def get_price_info_from_gg_deals(steamID: int) -> Dict:
     return data.get(str(steamID))
 
 
-def _get_game_page_url(steamID: int, gameName: str = None) -> str:
-    log_debug(f"Looking for gg deals url for steamID {steamID}")
-    """Best-effort: return a direct gg.deals game page URL for the given Steam ID or None."""
-    info = get_price_info(steamID)
-    if not info:
-        log_err(f"No price info found for Steam ID {steamID}, cannot determine gg.deals URL")
+def _request_info_from_redirect(steamID: int) -> Dict:
+    """Retrieve gg.deals price information for a Steam app ID by redirecting the API call"""
+    if steamID is None:
         return None
 
-    for key in ('url', 'game_url', 'link'):
-        val = info.get(key)
-        if isinstance(val, str) and val:
-            log_debug(f"Found value '{val}' for key '{key}'")
-            return val
+    print('Redirecting GG deals API')
+    url = Settings.get_setting('GGDEALS_REDIRECT_URL')
 
-    slug = None
-    if 'slug' in info and info.get('slug'):
-        slug = info.get('slug')
-    elif info.get('game') and isinstance(info.get('game'), dict):
-        slug = info.get('game').get('slug')
+    try:
+        response = requests.get(
+            url,
+            params={"steam_id": steamID},
+        )
+    except requests.RequestException as e:
+        log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
+        return None
 
-    if slug:
-        log_debug(f"Using slug: '{slug}")
-        return f"https://gg.deals/game/{slug}/"
-
-    if gameName:
-        query = gameName.replace(' ', '+')
-        log_debug(f'Replaced spaces in game name -> {query}')
-        return f"https://gg.deals/games/?search={query}"
-
-    return None
+    response.raise_for_status()
+    payload = response.json()
+    return payload
