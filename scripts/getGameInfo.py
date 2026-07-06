@@ -5,7 +5,7 @@ from pathlib import Path
 # Add parent directory to path to import modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib import Utils, GameInfoCollector
+from lib import Utils, GameInfoCollector, Settings
 
 FIXED_GAME_NAME = None  # Set to a specific game name for testing, or None for interactive mode
 
@@ -23,8 +23,10 @@ if __name__ == "__main__":
     # Clear the console screen
     print("\033c", end="")
 
-    exchange_rate = Utils.get_usd_zar_exchange_rate()
-    print("USD→ZAR RATE:", exchange_rate)
+    exchange_rate = None
+    if not Settings.is_true('MOCK_GGDEALS'):
+        exchange_rate = Utils.get_usd_zar_exchange_rate()
+        print("USD→ZAR RATE:", exchange_rate)
 
     if FIXED_GAME_NAME:
         print_game_info(FIXED_GAME_NAME, exchange_rate)

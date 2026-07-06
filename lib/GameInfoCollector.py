@@ -11,14 +11,13 @@ def build_game_info(game_name: str, exchange_rate=None):
     if not steam_data:
         return None
 
-    if Settings.get_setting('MOCK_GGDEALS', default='false').lower() == 'true':
+    if Settings.is_true('MOCK_GGDEALS'):
         log_debug("MOCK_GGDEALS is enabled, returning mock price info")
-        gg_url = "https://supersport.com/"
         lowest_usd = 100
-        return {
+        gg_lowest_price = {
             'usd': lowest_usd,
             'zar': round(lowest_usd * 16, 2),
-            'gg_url': gg_url,
+            'gg_url': "https://supersport.com/",
         }
     else:
         gg_lowest_price = GgDeals.get_lowest_price_info(

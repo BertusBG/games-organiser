@@ -19,7 +19,7 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict:
 
     # Get the info for the given steam ID from either the
     # gg.deals API or the redirect URL, depending on the setting
-    if Settings.get_setting('REDIRECT_GGDEALS_API', default='false').lower() == 'true':
+    if Settings.is_true('REDIRECT_GGDEALS_API'):
         price_info = _request_info_from_redirect(steamID)
     else:
         price_info = request_info_from_gg_deals(steamID)

@@ -31,3 +31,6 @@ def get_setting(name: str, default: str = None) -> str:
         return default
 
     return value
+
+def is_true(name:str) -> bool:
+    return get_setting(name, default='false').lower() == 'true'

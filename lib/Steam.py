@@ -110,13 +110,21 @@ def extract_store_tags(steam_data):
     })
 
 
-def extract_steam_price_information(steam_data):
+def extract_steam_price_information(steam_data) -> dict:
+
+    if steam_data.get('is_free'):
+        return {
+            'full_price': "R 0.00",
+            'current_price': "R 0.00",
+            'discount_percent': 0,
+        }
+
     price_overview = steam_data.get('price_overview')
 
     if not price_overview:
         return {
-            'full_price': 'Free',
-            'current_price': 'Free',
+            'full_price': 'N/A',
+            'current_price': 'N/A',
             'discount_percent': 0,
         }
 
