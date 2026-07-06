@@ -1,5 +1,9 @@
 <h2>Google Sheets Export</h2>
 
+<button class="copy-btn" onclick="copyTable()">
+    Copy to clipboard
+</button>
+
 <table class="sheet-table" id="sheetTable">
     <thead>
         <tr>
@@ -63,7 +67,3 @@
         {% endfor %}
     </tbody>
 </table>
-
-<button class="copy-btn" onclick="copyTable()">
-    Copy to Google Sheets
-</button>

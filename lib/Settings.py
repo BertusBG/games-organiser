@@ -29,5 +29,5 @@ def get_setting(name: str, default: str = None) -> str:
     if value is None:
         log_debug(f"Key '{name}' not found in JSON or environment variables, returning default value")
         return default
-    
+
     return value

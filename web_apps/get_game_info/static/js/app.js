@@ -9,7 +9,8 @@ function copyTable() {
     for (let r = 1; r < t.rows.length; r++) {
         let row = [];
 
-        for (let c = 0; c < t.rows[r].cells.length; c++) {
+        // Start at column 1 - skip game name in column 0
+        for (let c = 1; c < t.rows[r].cells.length; c++) {
             row.push(clean(t.rows[r].cells[c].innerText.trim()));
         }
 

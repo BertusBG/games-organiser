@@ -1,6 +1,10 @@
-{% if game_infos|length > 1 %}
+{% if game_infos|length > 0 %}
 
 <h2>System Requirements Export</h2>
+
+<button class="copy-btn" onclick="copyRequirements()">
+    Copy to clipboard
+</button>
 
 <pre id="reqText">
 {% for g in game_infos %}
@@ -22,9 +26,5 @@ No requirements available
 {% endif %}
 {% endfor %}
 </pre>
-
-<button class="copy-btn" onclick="copyRequirements()">
-    Copy System Requirements
-</button>
 
 {% endif %}
