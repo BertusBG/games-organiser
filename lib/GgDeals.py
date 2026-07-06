@@ -16,6 +16,7 @@ def get_lowest_price_info(steamID: int, usd_zar_rate: float = None) -> Dict:
             usd_zar_rate = Utils.get_usd_zar_exchange_rate()
         except Exception:
             usd_zar_rate = None
+    log_debug(f"USD to ZAR exchange rate: {usd_zar_rate}")
 
     # Get the info for the given steam ID from either the
     # gg.deals API or the redirect URL, depending on the setting
@@ -68,6 +69,10 @@ def request_info_from_gg_deals(steamID: int) -> Dict:
         log_err(e)
         return None
 
+    if not apiKey:
+        log_err('GGDEALS_API_KEY is not set in settings.json or environment variables')
+        return None
+
     url = 'https://api.gg.deals/v1/prices/by-steam-app-id/'
     params = {
         'key': apiKey,
@@ -76,6 +81,7 @@ def request_info_from_gg_deals(steamID: int) -> Dict:
     }
 
     try:
+        log_debug(f"Requesting gg.deals price info for Steam ID {steamID} from {url} with params {params}")
         payload = Utils.get_with_no_proxy(url, params)
     except requests.RequestException as e:
         log_err(f"Error fetching price info for Steam ID {steamID}: {e}")
@@ -84,7 +90,7 @@ def request_info_from_gg_deals(steamID: int) -> Dict:
     if not payload.get('success'):
         log_err(f"Failed to get price info for Steam ID {steamID}: API returned success=False")
         log_err(f"gg.deals API error: {payload.get('message', 'Unknown error')}")
-        raise ValueError(f"gg.deals API request failed: {payload}")
+        return None
 
     data = payload.get('data', {})
     return data.get(str(steamID))

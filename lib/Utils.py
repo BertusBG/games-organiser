@@ -50,6 +50,7 @@ def get_usd_zar_exchange_rate():
     """Return the current USD to ZAR exchange rate."""
 
     try:
+        log_debug("Fetching USD to ZAR exchange rate from open.er-api.com")
         payload = get_with_no_proxy('https://open.er-api.com/v6/latest/USD')
         rate = payload.get('rates', {}).get('ZAR')
         if rate is not None:
@@ -58,6 +59,7 @@ def get_usd_zar_exchange_rate():
         pass
 
     try:
+        log_debug("Fetching USD to ZAR exchange rate from frankfurter.app")
         response = requests.get(
             'https://api.frankfurter.app/latest',
             params={'from': 'USD', 'to': 'ZAR'},

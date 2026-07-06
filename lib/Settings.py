@@ -23,14 +23,16 @@ def get_setting(name: str, default: str = None) -> str:
     secrets = _load_data_from_json(SETTINGS_PATH)
     value = secrets.get(name)
     if value is None:
-        log_debug(f"Key '{name}' found in JSON, looking for environment variable")
+        log_debug(f"Key '{name}' not found in JSON, looking for environment variable")
         value = os.environ.get(name)
 
     if value is None:
         log_debug(f"Key '{name}' not found in JSON or environment variables, returning default value")
-        return default
+        value = default
 
+    log_debug(f"Key '{name}' found, returning value '{value}'")
     return value
+
 
 def is_true(name:str) -> bool:
     return get_setting(name, default='false').lower() == 'true'
