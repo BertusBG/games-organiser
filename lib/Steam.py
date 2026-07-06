@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from . import Utils
 
 
-def get_id(gameName):
+def get_id(gameName: str) -> int:
     """Return the Steam app ID for a game by searching the Steam store."""
 
     # Remove non-alphanumeric characters and normalize whitespace for the search query
@@ -27,12 +27,38 @@ def get_id(gameName):
     if not items:
         return None
 
+    # If there's an exact match, return it
     normalized_query = Utils.normalize_title(gameName)
     for item in items:
         if Utils.normalize_title(item.get('name', '')) == normalized_query:
+            print('Returning Steam ID for', item.get('name'), '(exact match)')
             return item.get('id')
 
-    return items[0].get('id')
+
+    for item in items:
+        # Remove the search term to see what additional text there is in this game's name
+        stripped = Utils.normalize_title(item.get('name')).replace(normalized_query, "")
+
+        # Don't use the game if, after the search term has been removed,
+        # some text remains that looks like a soundtrack or a Roman numeral
+        disallowedSubstrings = ["soundtrack", "ost", "ii", "ii", "iv", "vii", "viii", "ix"]
+        if any(s in stripped for s in disallowedSubstrings):
+            print('Skipping', item.get('name'), '(disallowed string)')
+            continue
+
+        # Don't use the game if there's a number that doesn't look like a release year
+        numbers = [int(num) for num in re.findall(r'\d+', stripped)]
+        if any(n < 1980 for n in numbers):
+            print('Skipping', item.get('name'), '(number)')
+            continue
+
+        # If we passed both these checks, use this game
+        print('Returning Steam ID for', item.get('name'))
+        return item.get('id')
+
+    # If no games matched, return None
+    print(f'No good match found for search term "{gameName}"')
+    return None
 
 
 def get_app_details(steam_app_id, language='en', country='ZA'):
