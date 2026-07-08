@@ -25,3 +25,31 @@ function copyRequirements() {
         document.getElementById("reqText").innerText
     );
 }
+
+function clearGameNames() {
+    let textarea = document.getElementById("game_name");
+    console.log(textarea);
+    textarea.value = "";
+    textarea.focus();
+}
+
+function submitLookup() {
+    document.getElementById("lookup-form").requestSubmit();
+}
+
+function handleGameNameKeydown(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        submitLookup();
+    }
+}
+
+function init() {
+    const textarea = document.getElementById("game_name");
+
+    if (textarea) {
+        textarea.addEventListener("keydown", handleGameNameKeydown);
+    }
+}
+
+init();

@@ -4,10 +4,11 @@
 
 <h1>Steam Game Info Lookup</h1>
 
-<form method="post">
+<form id="lookup-form" method="post">
     <label>Game names (one per line)</label>
-    <textarea name="game_name">{{ game_input or '' }}</textarea>
+    <textarea id="game_name" name="game_name">{{ game_input or '' }}</textarea>
     <button type="submit">Lookup</button>
+    <button type="button" onclick="clearGameNames()">Clear</button>
 </form>
 
 {% if error %}
